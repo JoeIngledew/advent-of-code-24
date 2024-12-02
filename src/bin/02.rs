@@ -134,10 +134,6 @@ pub fn part_two(input: &str) -> Option<usize> {
         .into_iter()
         .filter(|xs| is_unsafe_vec_tolerable(xs))
         .count();
-    // let x = to_num_vecs(input)
-    //     .into_iter()
-    //     .filter(|xs| is_vec_safe_v2(xs))
-    //     .count();
     Some(safe_count + addnl_count)
 }
 
