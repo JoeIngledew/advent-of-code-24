@@ -17,7 +17,7 @@ enum Direction {
     Decrease,
 }
 
-fn is_vec_safe(input: &Vec<i32>) -> bool {
+fn is_vec_safe(input: &[i32]) -> bool {
     let (is_safe, _, _) = input.iter().fold((true, None, None), |acc, curr| {
         let (passing, prev, direction) = acc;
         if !passing {
@@ -42,7 +42,7 @@ fn is_vec_safe(input: &Vec<i32>) -> bool {
             };
             (is_safe, Some(*curr), new_direction)
         } else {
-            return (true, Some(*curr), None);
+            (true, Some(*curr), None)
         }
     });
     // println!("vec {:?} is safe? {}", input, is_safe);
@@ -89,10 +89,10 @@ fn is_vec_safe(input: &Vec<i32>) -> bool {
 //     is_safe
 // }
 
-fn is_unsafe_vec_tolerable(xs: &Vec<i32>) -> bool {
+fn is_unsafe_vec_tolerable(xs: &[i32]) -> bool {
     let len = xs.len();
     for x in 0..len {
-        let mut new_vec = xs.clone();
+        let mut new_vec = xs.to_owned();
         new_vec.remove(x);
         if is_vec_safe(&new_vec) {
             return true;
@@ -132,7 +132,7 @@ pub fn part_two(input: &str) -> Option<usize> {
         .collect();
     let addnl_count = unsafe_vecs
         .into_iter()
-        .filter(is_unsafe_vec_tolerable)
+        .filter(|xs| is_unsafe_vec_tolerable(xs))
         .count();
     // let x = to_num_vecs(input)
     //     .into_iter()
