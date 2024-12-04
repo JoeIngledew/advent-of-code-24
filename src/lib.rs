@@ -3,12 +3,25 @@ pub mod template;
 // Use this file to add helper functions and additional modules.
 use anyhow::Error;
 use num_traits::Num;
+use std::fmt;
 use std::hash::Hash;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Point {
     pub x: usize,
     pub y: usize,
+}
+
+impl Point {
+    pub fn new(x: usize, y: usize) -> Self {
+        Point { x, y }
+    }
+}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[{}, {}]", self.x, self.y)
+    }
 }
 
 pub fn flat_manhattan_distance(p1: Point, p2: Point) -> usize {
@@ -70,7 +83,7 @@ mod tests {
     fn test_read_line_numbers_u32_char() {
         let input = "1 2 3 4 5";
         let output: Vec<u32> = vec![1, 2, 3, 4, 5];
-        let actual = read_line_numbers::<u32>(&input, SplitPattern::Char(' '));
+        let actual = read_line_numbers::<u32>(input, SplitPattern::Char(' '));
         assert!(actual.is_ok());
         assert_eq!(output, actual.unwrap());
     }
@@ -79,7 +92,7 @@ mod tests {
     fn test_read_line_numbers_f64_str() {
         let input = "1.23, 2, 3.543, 4.5";
         let output: Vec<f64> = vec![1.23, 2.0, 3.543, 4.5];
-        let actual = read_line_numbers::<f64>(&input, SplitPattern::Str(", "));
+        let actual = read_line_numbers::<f64>(input, SplitPattern::Str(", "));
         assert!(actual.is_ok());
         assert_eq!(output, actual.unwrap());
     }
