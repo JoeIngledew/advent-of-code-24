@@ -25,6 +25,8 @@ anyhow = "1.0.93"
 # Template dependencies
 chrono = { version = "0.4.38", optional = true }
 dhat = { version = "0.3.3", optional = true }
+hashbrown = "0.15.2"
+itertools = "0.13.0"
 num-traits = "0.2.19"
 petgraph = "0.6.5"
 pico-args = "0.5.0"

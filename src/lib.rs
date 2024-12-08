@@ -6,7 +6,7 @@ use num_traits::Num;
 use std::fmt;
 use std::hash::Hash;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 pub struct Point {
     pub x: usize,
     pub y: usize,
