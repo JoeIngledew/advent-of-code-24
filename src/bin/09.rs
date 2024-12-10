@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, ptr};
 
 advent_of_code::solution!(9);
 
@@ -56,38 +56,38 @@ fn compress(disk_map: &str) -> Vec<Option<usize>> {
     uncompressed
 }
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// struct MemChunk {
-//     len: usize,
-//     data_id: Option<usize>,
-//     first_ix: usize,
-// }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct MemChunk {
+    len: usize,
+    data_id: Option<usize>,
+    first_ix: usize,
+}
 
-// impl MemChunk {
-//     fn new(len: usize, id: Option<usize>, first_ix: usize) -> Self {
-//         MemChunk {
-//             len,
-//             data_id: id,
-//             first_ix,
-//         }
-//     }
+impl MemChunk {
+    fn new(len: usize, id: Option<usize>, first_ix: usize) -> Self {
+        MemChunk {
+            len,
+            data_id: id,
+            first_ix,
+        }
+    }
 
-//     fn is_empty(&self) -> bool {
-//         self.data_id.is_none()
-//     }
+    fn is_empty(&self) -> bool {
+        self.data_id.is_none()
+    }
 
-//     fn checksum_segment(&self) -> usize {
-//         if let Some(v) = self.data_id {
-//             let mut sum: usize = 0;
-//             for i in self.first_ix..(self.first_ix + self.len) {
-//                 sum += i * v;
-//             }
-//             sum
-//         } else {
-//             0
-//         }
-//     }
-// }
+    // fn checksum_segment(&self) -> usize {
+    //     if let Some(v) = self.data_id {
+    //         let mut sum: usize = 0;
+    //         for i in self.first_ix..(self.first_ix + self.len) {
+    //             sum += i * v;
+    //         }
+    //         sum
+    //     } else {
+    //         0
+    //     }
+    // }
+}
 
 // fn to_mem_chunks(data: &[Option<usize>]) -> Vec<MemChunk> {
 //     let mut result: Vec<MemChunk> = vec![];
@@ -203,19 +203,142 @@ fn calc_checksum(data: &[Option<usize>]) -> usize {
     })
 }
 
+fn calc_checksum_u32(data: &[Option<u32>]) -> u64 {
+    data.iter().enumerate().fold(0, |acc, (ix, x)| match x {
+        Some(v) => acc + (ix as u64 * (*v as u64)),
+        None => acc,
+    })
+}
+
+fn expanded_view(disk_map: &str) -> Vec<Option<u32>> {
+    let mut is_empty = false;
+    let mut curr_id: u32 = 0;
+    let mut final_chars: Vec<Option<u32>> = vec![];
+    for c in disk_map.chars() {
+        let count = c.to_digit(10).unwrap() as usize;
+        for _ in 0..count {
+            let to_push = if is_empty { None } else { Some(curr_id) };
+            final_chars.push(to_push);
+        }
+        if !is_empty {
+            curr_id += 1;
+        }
+        is_empty = !is_empty;
+    }
+
+    final_chars
+}
+
+fn expanded_view_to_chunks(view: Vec<Option<u32>>) -> Vec<MemChunk> {
+    let mut curr_id: Option<u32> = Some(0);
+    let mut contiguous_chunk_len: usize = 0;
+    let mut curr_first_ix: usize = 0;
+    let mut result: Vec<MemChunk> = vec![];
+
+    for (ix, c) in view.into_iter().enumerate() {
+        if curr_id == c {
+            contiguous_chunk_len += 1;
+        } else {
+            let id = c;
+            result.push(MemChunk::new(
+                contiguous_chunk_len,
+                curr_id.map(|o| o as usize),
+                curr_first_ix,
+            ));
+            curr_first_ix = ix;
+            curr_id = id;
+            contiguous_chunk_len = 1;
+        }
+    }
+    result.push(MemChunk::new(
+        contiguous_chunk_len,
+        curr_id.map(|o| o as usize),
+        curr_first_ix,
+    ));
+
+    result
+}
+
+// fn print_current(view: &[Option<u32>]) {
+//     let mut s: String = String::new();
+//     for x in view {
+//         if x.is_none() {
+//             s = s + ".";
+//         } else {
+//             s = s + x.unwrap().to_string().as_str()
+//         }
+//     }
+//     println!("{}", s);
+// }
+
+// stolen from the internet, oh no an unsafe block :(
+fn swap_range<T>(data: &mut [T], len: usize, a: usize, b: usize) {
+    if len == 0 {
+        return;
+    }
+    let a_end = a.checked_add(len).expect("overflow");
+    let b_end = b.checked_add(len).expect("overflow");
+    // check bounds and overlap
+    let _ = (&data[a_end - 1], &data[b_end - 1]);
+    assert!(a >= b_end || b >= a_end, "overlap");
+    unsafe {
+        ptr::swap_nonoverlapping(&mut data[a], &mut data[b], len);
+    }
+}
+
+fn get_next_view(
+    curr_view: Vec<Option<u32>>,
+    curr_chunks: Vec<MemChunk>,
+    chunk_to_move: MemChunk,
+) -> Vec<Option<u32>> {
+    let first_available = curr_chunks
+        .iter()
+        .filter(|c| {
+            c.is_empty() && c.first_ix < chunk_to_move.first_ix && c.len >= chunk_to_move.len
+        })
+        .min_by(|c1, c2| c1.first_ix.cmp(&c2.first_ix));
+
+    if let Some(chunk) = first_available {
+        let swap_len = chunk_to_move.len;
+        let a = chunk.first_ix;
+        let b = chunk_to_move.first_ix;
+        let mut data = curr_view.clone();
+        swap_range(&mut data, swap_len, a, b);
+        // print_current(&data);
+        return data;
+    }
+
+    curr_view
+}
+
 pub fn part_one(input: &str) -> Option<usize> {
     let compressed = compress(input);
     let checksum = calc_checksum(&compressed);
     Some(checksum)
 }
 
-pub fn part_two(_input: &str) -> Option<usize> {
-    // todo
-    // let init = to_mem_chunks_2(input);
-    // let compressed = compress_v2(init);
-    // let _sum: usize = compressed.iter().map(|c| c.checksum_segment()).sum();
-    //Some(sum)
-    None
+pub fn part_two(input: &str) -> Option<u64> {
+    let init_expanded = expanded_view(input);
+    let mut init_chunks = expanded_view_to_chunks(init_expanded.clone());
+    let mut queue: VecDeque<MemChunk> = VecDeque::new();
+    let mut cloned_chunks: Vec<MemChunk> = init_chunks
+        .iter()
+        .filter(|x| x.data_id.is_some())
+        .cloned()
+        .collect();
+    cloned_chunks.sort_by(|a, b| a.data_id.unwrap().cmp(&b.data_id.unwrap()));
+    for c in cloned_chunks {
+        queue.push_front(MemChunk::new(c.len, c.data_id, c.first_ix));
+    }
+
+    let mut view = init_expanded;
+    while let Some(c) = queue.pop_front() {
+        view = get_next_view(view.clone(), init_chunks, c);
+        init_chunks = expanded_view_to_chunks(view.clone());
+    }
+
+    let checksum = calc_checksum_u32(&view);
+    Some(checksum)
 }
 
 #[cfg(test)]
@@ -231,8 +354,8 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
-        //assert_eq!(result, Some(2858));
+        //assert_eq!(result, None);
+        assert_eq!(result, Some(2858));
     }
 
     // #[test]
