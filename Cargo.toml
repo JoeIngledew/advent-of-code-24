@@ -28,6 +28,7 @@ dhat = { version = "0.3.3", optional = true }
 hashbrown = "0.15.2"
 itertools = "0.13.0"
 num-traits = "0.2.19"
+pathfinding = "4.12.0"
 petgraph = "0.6.5"
 pico-args = "0.5.0"
 rayon = "1.10.0"
