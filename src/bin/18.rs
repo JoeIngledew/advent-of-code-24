@@ -1,7 +1,5 @@
 advent_of_code::solution!(18);
 
-use std::usize;
-
 use advent_of_code::Point;
 use pathfinding::prelude::*;
 
